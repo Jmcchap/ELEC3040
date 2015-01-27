@@ -10,9 +10,12 @@ int count = 0;
 
 void PinSetup(){
 /*Configure PC() as output pins for LEDS*/
-RCC->AHBENR |= 0x04;             /*Enable GPIOC clock*/
-GPIOC->MODER &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
-GPIOC->MODER |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
+GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+GPIOC->OSPEEDR  &= (0xFFFFFF00);    /*Clear Pins 0-3 for speed setting*/
+GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
 
 /*Configure PA() as input pins for S1 and S2*/
 RCC->AHBENR |= 0x01;             /*Enable GPIOA clock*/
@@ -53,6 +56,34 @@ void counting (int n, unsigned char sw2, unsigned char l1, unsigned char l2, uns
       n--; //decrement counter by one
   }
   actLEDs(n,l1,l2,l3,l4); //set states for LEDs
+
+  if (l1 == 0){
+      GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+}
+  else{
+      GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+}
+
+  if (l2 == 0){
+      GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+}
+  else{
+      GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+}
+
+  if (l3 == 0){
+      GPIOC->BSRRH = 0x03;       /*set LED3 to 0*/
+}
+  else{
+      GPIOC->BSRRL = 0x03;      /*set LED3 to 1*/
+}
+  if (l4 == 0){
+      GPIOC->BSRRH = 0x04;       /*set LED4 to 0*/
+}
+  else{
+      GPIOC->BSRRL = 0x04;      /*set LED4 to 1*/
+}
+
 }
 
 /*----------------------------------------------------------*/
@@ -132,12 +163,14 @@ void actLEDs(int n, unsigned char l1, unsigned char l2, unsigned char l3, unsign
   }
 }
 
+
+
 /*----------------------------------------------------------*/
 /* Main program */
 /*----------------------------------------------------------*/
 int main(void)
 {
-  unsigned char sw1 = 0; //state of SW1
+  unsigned char sw1 = 1; //state of SW1
   unsigned char sw2 = 0; //state of SW2
   unsigned char led1 = 0; //state of LED1
   unsigned char led2 = 0; //state of LED2
@@ -148,8 +181,6 @@ int main(void)
   while(1) //Endless loop
   {
     //insert smart stuff about determining the values of sw1 and sw2 here
-    sw1 = GPIOA->IDR & 0x01 //read GPIOA and mask all but bit 0
-    sw2 = GPIOA->IDR & 0x10 //read GPIOA and mask all but bit 1 //???
     if (sw1 = 1) //START - increment counter and delay 0.5 seconds
     {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
