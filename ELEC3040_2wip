@@ -137,7 +137,7 @@ void actLEDs(int n, unsigned char l1, unsigned char l2, unsigned char l3, unsign
 /*----------------------------------------------------------*/
 int main(void)
 {
-  unsigned char sw1 = 1; //state of SW1
+  unsigned char sw1 = 0; //state of SW1
   unsigned char sw2 = 0; //state of SW2
   unsigned char led1 = 0; //state of LED1
   unsigned char led2 = 0; //state of LED2
@@ -148,6 +148,8 @@ int main(void)
   while(1) //Endless loop
   {
     //insert smart stuff about determining the values of sw1 and sw2 here
+    sw1 = GPIOA->IDR & 0x01 //read GPIOA and mask all but bit 0
+    sw2 = GPIOA->IDR & 0x10 //read GPIOA and mask all but bit 1 //???
     if (sw1 = 1) //START - increment counter and delay 0.5 seconds
     {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
