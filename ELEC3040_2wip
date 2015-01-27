@@ -8,6 +8,18 @@ int count = 0;
 /* PA2 - Switch 2 connected to DIO1 on the EEBoard */
 /*----------------------------------------------------------*/
 
+void PinSetup(){
+/*Configure PC() as output pins for LEDS*/
+RCC->AHBENR |= 0x04;             /*Enable GPIOC clock*/
+GPIOC->MODER &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+GPIOC->MODER |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+
+/*Configure PA() as input pins for S1 and S2*/
+RCC->AHBENR |= 0x01;             /*Enable GPIOA clock*/
+GPIOA->MODER &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 as inputs*/
+
+}
+
 
 /*----------------------------------------------------------*/
 /* Delay function - 0.5 second delay??? */
