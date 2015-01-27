@@ -24,23 +24,100 @@ void delay ()
 /*----------------------------------------------------------*/
 /* Counting function - reversible decade counter with LED display */
 /*----------------------------------------------------------*/
-void counting (unsigned char sw2)
+void counting (int n, unsigned char sw2, unsigned char l1, unsigned char l2, unsigned char l3, unsigned char l4)
 {
   if (sw2 = 0) //count up
   {
-    if (count>=9)
-      count = 0; //if count=9 roll over to 0
+    if (n>=9)
+      n = 0; //if count=9 roll over to 0
       else
-      count++; //increment counter by one
+      n++; //increment counter by one
   }
     else //count down
   {
-    if (count <= 0)
-      count = 9; //if count=0 roll over to 9
+    if (n <= 0)
+      n = 9; //if count=0 roll over to 9
       else
-      count--; //decrement counter by one
+      n--; //decrement counter by one
   }
-  //insert smart stuff about binary and LEDs here
+  actLEDs(n,l1,l2,l3,l4); //set states for LEDs
+}
+
+/*----------------------------------------------------------*/
+/* set the states of corresponding LEDs based on a integer from 0 to 9 */
+/*----------------------------------------------------------*/
+void actLEDs(int n, unsigned char l1, unsigned char l2, unsigned char l3, unsigned char l4)
+{
+  if (n = 0)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n = 1)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n = 2)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n = 3)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n = 4)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n = 5)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n = 6)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n = 7)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n = 8)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n = 9)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
 }
 
 /*----------------------------------------------------------*/
@@ -61,7 +138,7 @@ int main(void)
     //insert smart stuff about determining the values of sw1 and sw2 here
     if (sw1 = 1) //START - increment counter and delay 0.5 seconds
     {
-      counting(sw2); //increment counter and display values with LED
+      counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
       delay(); //0.5 second delay
     }
     else //STOP - do nothing
