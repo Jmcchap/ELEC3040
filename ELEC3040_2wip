@@ -18,9 +18,11 @@ GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
 GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
 
 /*Configure PA() as input pins for S1 and S2*/
-RCC->AHBENR |= 0x01;             /*Enable GPIOA clock*/
-GPIOA->MODER &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 as inputs*/
-
+RCC->AHBENR     |= 0x01;             /*Enable GPIOA clock*/
+GPIOA->MODER    &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 as inputs*/
+GPIOA->OSPEEDR  &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 for speed settings*/
+GPIOA->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
 }
 
 
