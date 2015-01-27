@@ -165,27 +165,27 @@ int main(void)
     {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
       delay(); //0.5 second delay
-        if (l1 == 0){
+        if (led1 == 0){
             GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
       }
         else{
             GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
       }
 
-        if (l2 == 0){
+        if (led2 == 0){
             GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
       }
         else{
             GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
       }
 
-        if (l3 == 0){
+        if (led3 == 0){
             GPIOC->BSRRH = 0x03;       /*set LED3 to 0*/
       }
         else{
             GPIOC->BSRRL = 0x03;      /*set LED3 to 1*/
       }
-        if (l4 == 0){
+        if (led4 == 0){
             GPIOC->BSRRH = 0x04;       /*set LED4 to 0*/
       }
         else{
