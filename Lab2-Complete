@@ -1,0 +1,206 @@
+#include "STM32L1xx.h"
+
+int count = 0;
+int led1 = 0; //state of LED1
+int led2 = 0; //state of LED2
+int led3 = 0; //state of LED3
+int led4 = 0; //state of LED4
+
+/*----------------------------------------------------------*/
+/* Pin setup - initialize GPIO pins used in program */
+/* PA1 - Switch 1 connected to DIO0 on the EEBoard */
+/* PA2 - Switch 2 connected to DIO1 on the EEBoard */
+/*----------------------------------------------------------*/
+
+void PinSetup(){
+/*Configure PC() as output pins for LEDS*/
+RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
+GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+GPIOC->OSPEEDR  &= (0xFFFFFF00);    /*Clear Pins 0-3 for speed setting*/
+GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
+
+/*Configure PA() as input pins for S1 and S2*/
+RCC->AHBENR     |= 0x01;             /*Enable GPIOA clock*/
+GPIOA->MODER    &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 as inputs*/
+GPIOA->OSPEEDR  &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 for speed settings*/
+GPIOA->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFFC3);    /*No pull-up, pull-down*/
+/*GPIOC->PUPDR		|=  (0x00000014);	*/	/*Set S1 and S2 with a pull-up resistor*/
+}
+
+
+/*----------------------------------------------------------*/
+/* Delay function - 0.5 second delay??? */
+/*----------------------------------------------------------*/
+void delay ()
+{
+ int a,b;
+ for (a=0; a<100; a++) { //outer loop
+ for (b=0; b<20000; b++) { //inner loop
+ }
+ }
+}
+
+
+/*----------------------------------------------------------*/
+/* set the states of corresponding LEDs based on a integer from 0 to 9 */
+/*----------------------------------------------------------*/
+void actLEDs(int n, int l1, int l2, int l3, int l4)
+{
+  if (n == 0)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 1)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 2)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 3)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 4)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 5)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 6)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 7)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 8)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 9)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+
+  led1 = l1;
+  led2 = l2;
+  led3 = l3;
+  led4 = l4;
+}
+
+
+/*----------------------------------------------------------*/
+/* Counting function - reversible decade counter with LED display */
+/*----------------------------------------------------------*/
+void counting (int n, int sw2, int l1, int l2, int l3, int l4)
+{
+  if (sw2 == 0) //count up
+  {
+    if (n>=9)
+      n = 0; //if count=9 roll over to 0
+      else
+      n++; //increment counter by one
+  }
+    else //count down
+  {
+    if (n <= 0)
+      n = 9; //if count=0 roll over to 9
+      else
+      n--; //decrement counter by one
+  }
+  actLEDs(n, l1, l2, l3, l4); //set states for LEDs
+  count = n;
+}
+
+
+/*----------------------------------------------------------*/
+/* Main program */
+/*----------------------------------------------------------*/
+int main(void)
+{
+  int sw1=0;  		//state of SW1
+  int sw2=0; 			//state of SW2
+
+  PinSetup(); //Configure GPIO pins
+
+  while(1) //Endless loop
+  {
+    //insert smart stuff about determining the values of sw1 and sw2 here
+
+    sw1 = GPIOA->IDR & 0x01; //read GPIOA and mask all but bit 0
+    sw2 = GPIOA->IDR & 0x02;  //read GPIOA and mask all but bit 1
+
+    if (sw1 == 1) //START - increment counter and delay 0.5 seconds
+    {
+      counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
+      delay(); //0.5 second delay
+        if (led1 == 0){
+            GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+      }
+
+        if (led2 == 0){
+            GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+      }
+
+        if (led3 == 0){
+            GPIOC->BSRRH = 0x04;       /*set LED3 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x04;      /*set LED3 to 1*/
+      }
+        if (led4 == 0){
+            GPIOC->BSRRH = 0x08;       /*set LED4 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
+      }
+    }
+    else //STOP - do nothing
+    {
+    }
+  }
+}
