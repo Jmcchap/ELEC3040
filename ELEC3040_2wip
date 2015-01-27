@@ -149,7 +149,7 @@ int main(void)
   {
     //insert smart stuff about determining the values of sw1 and sw2 here
     sw1 = GPIOA->IDR & 0x01 //read GPIOA and mask all but bit 0
-    sw2 = GPIOA->IDR & 0x10 //read GPIOA and mask all but bit 1 //???
+    sw2 = GPIOA->IDR & 0x02 //read GPIOA and mask all but bit 1
     if (sw1 = 1) //START - increment counter and delay 0.5 seconds
     {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
