@@ -59,33 +59,6 @@ void counting (int n, unsigned char sw2, unsigned char l1, unsigned char l2, uns
   }
   actLEDs(n,l1,l2,l3,l4); //set states for LEDs
 
-  if (l1 == 0){
-      GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
-}
-  else{
-      GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
-}
-
-  if (l2 == 0){
-      GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
-}
-  else{
-      GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
-}
-
-  if (l3 == 0){
-      GPIOC->BSRRH = 0x03;       /*set LED3 to 0*/
-}
-  else{
-      GPIOC->BSRRL = 0x03;      /*set LED3 to 1*/
-}
-  if (l4 == 0){
-      GPIOC->BSRRH = 0x04;       /*set LED4 to 0*/
-}
-  else{
-      GPIOC->BSRRL = 0x04;      /*set LED4 to 1*/
-}
-
 }
 
 /*----------------------------------------------------------*/
@@ -183,10 +156,41 @@ int main(void)
   while(1) //Endless loop
   {
     //insert smart stuff about determining the values of sw1 and sw2 here
+<<<<<<< HEAD
+=======
+    sw1 = GPIOA->IDR & 0x01 //read GPIOA and mask all but bit 0
+    sw2 = GPIOA->IDR & 0x02 //read GPIOA and mask all but bit 1
+>>>>>>> origin/master
     if (sw1 = 1) //START - increment counter and delay 0.5 seconds
     {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
       delay(); //0.5 second delay
+        if (l1 == 0){
+            GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+      }
+
+        if (l2 == 0){
+            GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+      }
+
+        if (l3 == 0){
+            GPIOC->BSRRH = 0x03;       /*set LED3 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x03;      /*set LED3 to 1*/
+      }
+        if (l4 == 0){
+            GPIOC->BSRRH = 0x04;       /*set LED4 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x04;      /*set LED4 to 1*/
+      }
     }
     else //STOP - do nothing
     {
