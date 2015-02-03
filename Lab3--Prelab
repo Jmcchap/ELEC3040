@@ -1,10 +1,18 @@
 #include "STM32L1xx.h"
 
 int count = 0;
+
+//set counter 1's LEDs
 int led1 = 0; //state of LED1
 int led2 = 0; //state of LED2
 int led3 = 0; //state of LED3
 int led4 = 0; //state of LED4
+
+//set counter 2's LEDs
+int led21 = 0; //state of LED1
+int led22 = 0; //state of LED2
+int led23 = 0; //state of LED3
+int led24 = 0; //state of LED4
 
 /*----------------------------------------------------------*/
 /* Pin setup - initialize GPIO pins used in program */
@@ -54,7 +62,7 @@ void delay ()
 /*----------------------------------------------------------*/
 /* set the states of corresponding LEDs based on a integer from 0 to 9 */
 /*----------------------------------------------------------*/
-void actLEDs(int n, int l1, int l2, int l3, int l4)
+void actLEDs1(int n, int l1, int l2, int l3, int l4)
 {
   if (n == 0)
   {
@@ -133,11 +141,95 @@ void actLEDs(int n, int l1, int l2, int l3, int l4)
   led4 = l4;
 }
 
+/*----------------------------------------------------------*/
+/* set the states of corresponding LEDs in counter 2 based on 9-n*/
+/*----------------------------------------------------------*/
+void actLEDs2(int n, int l21, int l22, int l23, int l24)
+{
+n = 9-n;          //sets the "opposite" value for counter 1's n
+
+  if (n == 0)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (n == 1)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (n == 2)
+  {
+    l21 = 0;
+    l22 = 1;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (n == 3)
+  {
+    l21 = 1;
+    l22 = 1;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (n == 4)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (n == 5)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (n == 6)
+  {
+    l21 = 0;
+    l22 = 1;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (n == 7)
+  {
+    l21 = 1;
+    l22 = 1;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (n == 8)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 0;
+    l24 = 1;
+  }
+  else if (n == 9)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 0;
+    l24 = 1;
+  }
+
+  led21 = l21;
+  led22 = l22;
+  led23 = l23;
+  led24 = l24;
+}
+
 
 /*----------------------------------------------------------*/
-/* Counting function - reversible decade counter with LED display */
+/* counting1 function - reversible decade counter with LED display */
 /*----------------------------------------------------------*/
-void counting (int n, int sw2, int l1, int l2, int l3, int l4)
+void counting1 (int n, int sw2, int l1, int l2, int l3, int l4)
 {
   if (sw2 == 0) //count up
   {
@@ -153,7 +245,8 @@ void counting (int n, int sw2, int l1, int l2, int l3, int l4)
       else
       n--; //decrement counter by one
   }
-  actLEDs(n, l1, l2, l3, l4); //set states for LEDs
+  actLEDs1(n, l1, l2, l3, l4); //set states for LEDs on first counter
+  actLEDs2(n, l21, l22, l23, l24); //set states for LEDs on second counter
   count = n;
 }
 
@@ -177,7 +270,7 @@ int main(void)
 
     if (sw1 == 1) //START - increment counter and delay 0.5 seconds
     {
-      counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
+      counting1(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
       delay(); //0.5 second delay
         if (led1 == 0){
             GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
@@ -205,6 +298,35 @@ int main(void)
         else{
             GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
       }
+
+      //assinging an on/off value to the corresponding LEDs for LED2
+      if (led21 == 0){
+          GPIOC->BSRRH = 0x10;       /*set LED1 to 0*/
+    }
+      else{
+          GPIOC->BSRRL = 0x10;      /*set LED1 to 1*/
+    }
+
+      if (led22 == 0){
+          GPIOC->BSRRH = 0x20;       /*set LED2 to 0*/
+    }
+      else{
+          GPIOC->BSRRL = 0x20;      /*set LED2 to 1*/
+    }
+
+      if (led23 == 0){
+          GPIOC->BSRRH = 0x40;       /*set LED3 to 0*/
+    }
+      else{
+          GPIOC->BSRRL = 0x40;      /*set LED3 to 1*/
+    }
+      if (led24 == 0){
+          GPIOC->BSRRH = 0x80;       /*set LED4 to 0*/
+    }
+      else{
+          GPIOC->BSRRL = 0x80;      /*set LED4 to 1*/
+    }
+
     }
     else //STOP - do nothing
     {
