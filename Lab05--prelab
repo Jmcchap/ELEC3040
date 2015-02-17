@@ -150,6 +150,48 @@ void actLEDs(int n, int l1, int l2, int l3, int l4)
     l3 = 0;
     l4 = 1;
   }
+  else if (n == 10) //A
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 11) //B
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 12) //C
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 1;
+  }
+  else if (n == 13) //D
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 1;
+  }
+  else if (n == 14) //E
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 1;
+  }
+  else if (n == 15) //F
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 1;
+  }
 
   led1 = l1;
   led2 = l2;
@@ -191,7 +233,7 @@ void EXTI0_IRQHandler ()
     else if (row3 == 0){
         num = 7;}
     else if (row4 == 0){
-        num = E;}
+        num = 14;}          //E
   GPIOB-> BSRRL = 0x01;             //return column1 to 1
 
 /*Scanning algorithm, column 2*/
@@ -215,24 +257,24 @@ void EXTI0_IRQHandler ()
         else if (row3 == 0){
             num = 9;}
         else if (row4 == 0){
-            num = F;}
+            num = 15;}          //F
       GPIOB-> BSRRL = 0x04;             //return column3 to 1
 
 /*Scanning algorithm, column 4*/
           GPIOB-> BSRRH = 0x08;            //set column4 to 0
           if (row1 = 0){
-                num = A;}
+                num = 10;}          //A
             else if (row2 == 0){
-                num = B;}
+                num = 11;}          //B
             else if (row3 == 0){
-                num = C;}
+                num = 12;}          //C
             else if (row4 == 0){
-                num = D;}
+                num = 13;}          //D
           GPIOB-> BSRRL = 0x08;             //return column4 to 1
-
-
-
+  
+  actLEDs(num,led1,led2,led3,led4);
   Int = 5;
+  
   NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
   EXTI-> PR         |= 0x0000;         //Clear EXTI1 pending status
 }
