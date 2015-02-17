@@ -30,6 +30,35 @@ GPIOA->OSPEEDR  &= (0xFFFFFFC3);    /*Clears Pins 1 and 2 for speed settings*/
 GPIOA->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
 GPIOC->PUPDR    &= (0xFFFFFFC3);    /*No pull-up, pull-down*/
 /*GPIOC->PUPDR		|=  (0x00000014);	*/	/*Set S1 and S2 with a pull-up resistor*/
+
+//Configure PB(0-3) as rows on keypad (inputs)
+RCC->AHBENR     |= 0x02;             /*Enable GPIOB clock*/
+GPIOC->MODER    &= (0xFFFFFF00);    //Clear Pins 0-3 to be set as inputs
+GPIOC->OSPEEDR  &= (0xFFFFFF00);    //Clears pins 0-3 for speed settings
+GPIOC->OSPEEDR  |= (0x000000FF);    //Set Speed to 40MHz (high speed)
+GPIOC->PUPDR    &= (0xFFFFFF00);    //Clear Pins 0-3 for pull up, pull-down settings
+GPIOC->PUPDR    |= (0x00000055);    //Set Pins 0-3 as pull up
+
+//Configure PB(4-7) as columns on keypad (outputs)
+GPIOC->MODER    &= (0xFFFF00FF);      //Clear pins 4-7 to be set as outputs
+GPIOC->MODER    |= (0x00005500);      //Sets pins 4-7 as outputs
+GPIOC->OSPEEDR  &= (0xFFFF00FF);      //Clears PB(4-7) for speed settings
+GPIOC->OSPEEDR  |= (0x0000FF00);      //Sets speed to 40MHz (high speed)
+GPIOC->PUPDR    &= (0xFFFF00FF);      //No pull-up, pull-down
+
+//Setup of PA1 as an interrupt (backup PA0 for interrupt)
+SYSCFG->EXTICR[0] &= 0xFFF0;         //clear bits for EXTI0 (Left 0 for PA selected)
+SYSCFG->EXTICR[0] &= 0xFF0F;         //clear bits for EXTI1 (Left 0 for PA selected)
+EXTI-> FTSR       |= 0x0000;         //Set EXTI0 as rising edge triggered
+EXTI-> IMR         = 0x0000;         //Enable EXTIO
+EXTI-> PR         |= 0x0000;         //Clear EXTI0 pending status
+EXTI-> RTSR       |= 0x0001;         //Set EXTI1 as rising edge triggered
+EXTI-> IMR         = 0x0001;         //Enable EXTI1
+EXTI-> PR         |= 0x0001;         //Clear EXTI1 pending status
+NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
+NVIC_ClearPendingIRQ(7);									//Clear NVIC pending status
+NVIC_EnableIRQ(6);          					//Enable external interrupt 0
+NVIC_EnableIRQ(7);          					//Enable external interrupt 1
 }
 
 
@@ -152,7 +181,7 @@ void EXTI0_IRQHandler ()
   /*
   According to what he was saying in lecture a row will hit logic zero when we push a button, therefore triggering the interrupt
   I think we can make the interrupt check which column activated the row by using a if-el
-  
+
   activate first column
   if (row activates)
     num = whatever number
@@ -166,11 +195,11 @@ void EXTI0_IRQHandler ()
         num = whatever number
       else
         num = 4th column number
-  
+
   At least that's the way that makes sense to me haha.
   You probably have a better way because you're better at this stuff than I am.
   */
-  
+
   Int = 5;
 }
 
