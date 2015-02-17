@@ -182,16 +182,16 @@ void EXTI0_IRQHandler ()
   According to what he was saying in lecture a row will hit logic zero when we push a button, therefore triggering the interrupt
   I think we can make the interrupt check which column activated the row by using a if-el
 
-  activate first column
-  if (row activates)
-    num = whatever number
+  GPIOB-> BSRRH = 0x01            //set column1 to 0
+  if (row1 == 0)                  //if row1 gets pulled down
+    num = 1;
   else
     activate second column
-    if (row activates)
+    if (row2 == 0)
       num = whatever number
     else
       activate third column
-      if (row activates)
+      if (row3 == 0)
         num = whatever number
       else
         num = 4th column number
@@ -201,6 +201,8 @@ void EXTI0_IRQHandler ()
   */
 
   Int = 5;
+  NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
+  NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
 }
 
 
@@ -218,11 +220,17 @@ int main(void)
   {
     //insert smart stuff about determining the values of sw1 and sw2 here
 
-    sw1 = GPIOA->IDR & 0x01; //read GPIOA and mask all but bit 0
-    sw2 = GPIOA->IDR & 0x02;  //read GPIOA and mask all but bit 1
+//  sw1 = GPIOA->IDR & 0x01; //read GPIOA and mask all but bit 0
+//  sw2 = GPIOA->IDR & 0x02;  //read GPIOA and mask all but bit 1
 
-    if (sw1 == 1) //START - increment counter and delay 0.5 seconds
-    {
+    row1= GPIOB->IDR & 0x00;    //PB(0) aka row1
+    row2= GPIOB->IDR & 0x01;    //PB(1) aka row2
+    row3= GPIOB->IDR & 0x02;    //PB(2) aka row3
+    row4= GPIOB->IDR & 0x04;    //PB(3) aka row4
+
+// if/else statement removed so program will begin immediatly
+//    if (sw1 == 1) //START - increment counter and delay 0.5 seconds
+//    {
       counting(count,sw2,led1,led2,led3,led4); //increment counter and display values with LED
       delay(); //0.5 second delay
         if (led1 == 0){
@@ -251,10 +259,10 @@ int main(void)
         else{
             GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
       }
-    }
-    else //STOP - do nothing
-    {
-    }
+//    }
+//    else //STOP - do nothing
+//    {
+//    }
   }
 }
 //insert fourth lab interrupt
