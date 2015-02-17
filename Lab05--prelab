@@ -52,11 +52,11 @@ SYSCFG->EXTICR[0] &= 0xFF0F;         //clear bits for EXTI1 (Left 0 for PA selec
 EXTI-> FTSR       |= 0x0000;         //Set EXTI0 as rising edge triggered
 EXTI-> IMR         = 0x0000;         //Enable EXTIO
 EXTI-> PR         |= 0x0000;         //Clear EXTI0 pending status
-EXTI-> RTSR       |= 0x0001;         //Set EXTI1 as rising edge triggered
+EXTI-> FTSR       |= 0x0001;         //Set EXTI1 as rising edge triggered
 EXTI-> IMR         = 0x0001;         //Enable EXTI1
 EXTI-> PR         |= 0x0001;         //Clear EXTI1 pending status
-NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
-NVIC_ClearPendingIRQ(7);									//Clear NVIC pending status
+NVIC_ClearPendingIRQ(6);						 //Clear NVIC pending status
+NVIC_ClearPendingIRQ(7);						 //Clear NVIC pending status
 NVIC_EnableIRQ(6);          					//Enable external interrupt 0
 NVIC_EnableIRQ(7);          					//Enable external interrupt 1
 }
@@ -231,9 +231,10 @@ void EXTI0_IRQHandler ()
           GPIOB-> BSRRL = 0x08;             //return column4 to 1
 
 
+
   Int = 5;
   NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
-  NVIC_ClearPendingIRQ(6);								 //Clear NVIC pending status
+  EXTI-> PR         |= 0x0000;         //Clear EXTI1 pending status
 }
 
 
@@ -245,7 +246,10 @@ int main(void)
   int sw1=0;  		//state of SW1
   int sw2=0; 			//state of SW2
 
-  PinSetup(); //Configure GPIO pins
+  PinSetup();         //Configure GPIO pins
+  __enable_irq();     //enable interrupts
+
+
 
   while(1) //Endless loop
   {
