@@ -248,6 +248,8 @@ void actLEDs(int n, int m, int l1, int l2, int l3, int l4, int l21, int l22, int
   else
     digitn++; //increment counter by one
 
+ TIM10->DIER  |= 0x01;                    //UIE is bit 0
+
   actLEDs(digitn, digitm, led1, led2, led3, led4, led21, led22, led23, led24); //set states for LEDs
 } */
 
@@ -260,15 +262,16 @@ void EXTI0_IRQHandler () //Start/Stop button
   if (start == 0)
   {
     start = 1;
-                //Turn off Reset interrupt
+      NVIC_DisableIRQ(Pos_EXTI1);            //Turn off Reset interrupt
       TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
   }
   else
   {
     start = 0;
-                //Turn on Reset interrupt
+      NVIC_EnableIRQ(Pos_EXTI1);          //Turn on Reset interrupt
       TIM10->CR1 &= ~0x01;        //Turn off time delay interrupt
   }
+  NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
 }
 
 void EXTI1_IRQHandler () //Reset button
@@ -277,6 +280,8 @@ void EXTI1_IRQHandler () //Reset button
 
   digitn = 0;
   digitm = 0;
+
+  NVIC_ClearPendingIRQ(Pos_EXTI1);		//Clear NVIC pending status
 }
 
 /*----------------------------------------------------------*/
