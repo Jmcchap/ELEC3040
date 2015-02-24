@@ -1,0 +1,317 @@
+
+#include "STM32L1xx.h"
+
+int digitm = 0; //seconds
+int digitn = 0; //tenths of seconds
+
+//tenths of seconds
+int led1 = 0; //state of LED1
+int led2 = 0; //state of LED2
+int led3 = 0; //state of LED3
+int led4 = 0; //state of LED4
+
+//seconds
+int led21 = 0; //state of LED1
+int led22 = 0; //state of LED2
+int led23 = 0; //state of LED3
+int led24 = 0; //state of LED4
+
+void PinSetup()
+{
+          //insert smart stuff about pins here
+}
+
+/*----------------------------------------------------------*/
+/* Delay function - small delay for interrupt */
+/*----------------------------------------------------------*/
+void delay ()
+{
+ int a,b;
+ for (a=0; a<100; a++) { //outer loop
+ for (b=0; b<5000; b++) { //inner loop
+ }
+ }
+}
+
+
+/*----------------------------------------------------------*/
+/* set the states of corresponding LEDs based on seconds (m) and tenths of seconds (n) */
+/*----------------------------------------------------------*/
+void actLEDs(int n, int m, int l1, int l2, int l3, int l4, int l21, int l22, int l23, int l24)
+{
+  if (n == 0)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 1)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 2)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 3)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 4)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 5)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 6)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 7)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 8)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 9)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+
+  led1 = l1;
+  led2 = l2;
+  led3 = l3;
+  led4 = l4;
+
+  if (m == 0)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (m == 1)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (m == 2)
+  {
+    l21 = 0;
+    l22 = 1;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (m == 3)
+  {
+    l21 = 1;
+    l22 = 1;
+    l23 = 0;
+    l24 = 0;
+  }
+  else if (m == 4)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (m == 5)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (m == 6)
+  {
+    l21 = 0;
+    l22 = 1;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (m == 7)
+  {
+    l21 = 1;
+    l22 = 1;
+    l23 = 1;
+    l24 = 0;
+  }
+  else if (m == 8)
+  {
+    l21 = 0;
+    l22 = 0;
+    l23 = 0;
+    l24 = 1;
+  }
+  else if (m == 9)
+  {
+    l21 = 1;
+    l22 = 0;
+    l23 = 0;
+    l24 = 1;
+  }
+
+  led21 = l21;
+  led22 = l22;
+  led23 = l23;
+  led24 = l24;
+}
+
+/*----------------------------------------------------------*/
+/* Time interrupt -- activates every 0.1 seconds */
+/*----------------------------------------------------------*/
+void counting () //Time interrupt
+{
+  if (digitn>=9)
+  {
+    digitn = 0; //if 9, roll over to 0
+    
+    if (digitm>=9)
+      digitm = 0; //if 9, roll over to 0
+    else
+      digitm++; //increment by one
+  }    
+  else
+    digitn++; //increment counter by one
+
+  actLEDs(digitn, digitm, led1, led2, led3, led4, led21, led22, led23, led24); //set states for LEDs
+}
+
+void StartStop () //Start/Stop button
+{
+  delay();
+  
+  if (start == 0)
+  {
+    start = 1;
+                //Turn off Reset interrupt
+                //Turn on time delay interrupt
+  }
+  else
+  {  
+    start = 0;
+                //Turn on Reset interrupt
+                //Turn off time delay interrupt
+  }
+}
+
+void Reset () //Reset button
+{
+  delay();
+  
+  digitn = 0;
+  digitm = 0;
+}
+
+/*----------------------------------------------------------*/
+/* Main program */
+/*----------------------------------------------------------*/
+int main(void)
+{
+  PinSetup(); //Configure GPIO pins
+
+  if (start == 1){
+
+  while(1) //Endless loop
+  {
+    if (led1 == 0){
+      GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+    }
+
+    if (led2 == 0){
+      GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+    }
+
+    if (led3 == 0){
+      GPIOC->BSRRH = 0x04;       /*set LED3 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x04;      /*set LED3 to 1*/
+    }
+  
+    if (led4 == 0){
+      GPIOC->BSRRH = 0x08;       /*set LED4 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
+    }
+    
+    
+    
+
+    if (led21 == 0){
+      GPIOC->BSRRH = 0x10;       /*set LED21 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x10;      /*set LED21 to 1*/
+    }
+
+    if (led22 == 0){
+      GPIOC->BSRRH = 0x20;       /*set LED22 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x20;      /*set LED2 to 1*/
+    }
+
+    if (led3 == 0){
+      GPIOC->BSRRH = 0x40;       /*set LED23 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x40;      /*set LED23 to 1*/
+    }
+  
+    if (led4 == 0){
+      GPIOC->BSRRH = 0x80;       /*set LED24 to 0*/
+    }
+    else{
+      GPIOC->BSRRL = 0x80;      /*set LED24 to 1*/
+    }    
+    
+  }
+  else
+  {
+  }
+  
+  }
+}
