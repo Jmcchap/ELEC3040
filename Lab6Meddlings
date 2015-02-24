@@ -4,8 +4,9 @@
 int digitm = 0; //seconds
 int digitn = 0; //tenths of seconds
 
-int Pin_EXTI0 = 6;
-int Pin_EXTI1 = 7;
+int Pos_EXTI0 = 6;
+int Pos_EXTI1 = 7;
+int Pos_TIM10 = 26;
 
 //tenths of seconds
 int led1 = 0; //state of LED1
@@ -21,7 +22,7 @@ int led24 = 0; //state of LED4
 
 void PinSetup()
 {
-//Configure PC() as output pins for LEDS for one's place
+        //Configure PC() as output pins for LEDS for one's place
 RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
 GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
 GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
@@ -52,8 +53,8 @@ NVIC_EnableIRQ(Pos_EXTI1);          //Enable external interrupt 1
 
 //Setup of TIM10
 RCC->APB2ENR |= RCC_APB2ENR_TIM10EN;     //enable clock for TIM10
-TIM10->PSC    = 1599;                    //(9999 x 1599 ) /16E6 = 0.999275
-TIM10->ARR    = 9999;                     //1 second delay
+TIM10->PSC    = 13999;                    //
+TIM10->ARR    = 4999;
 TIM10->DIER  |= 0x01;                    //UIE is bit 0
 NVIC_ClearPendingIRQ(Pos_TIM10);        //clear NVIC pending status
 NVIC_EnableIRQ(Pos_TIM10);
@@ -234,7 +235,7 @@ void actLEDs(int n, int m, int l1, int l2, int l3, int l4, int l21, int l22, int
 /*----------------------------------------------------------*/
 /* Time interrupt -- activates every 0.1 seconds */
 /*----------------------------------------------------------*/
-/*void TIM10_IRQHandler () //Time interrupt
+void counting () //Time interrupt
 {
   if (digitn>=9)
   {
@@ -249,8 +250,6 @@ void actLEDs(int n, int m, int l1, int l2, int l3, int l4, int l21, int l22, int
     digitn++; //increment counter by one
 
   actLEDs(digitn, digitm, led1, led2, led3, led4, led21, led22, led23, led24); //set states for LEDs
-} */
-
 }
 
 void EXTI0_IRQHandler () //Start/Stop button
@@ -261,17 +260,17 @@ void EXTI0_IRQHandler () //Start/Stop button
   {
     start = 1;
                 //Turn off Reset interrupt
-      TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+        TIM10->CR1 |= 0x01;        //Turn on time delay interrupt
   }
   else
   {
     start = 0;
                 //Turn on Reset interrupt
-      TIM10->CR1 &= ~0x01;        //Turn off time delay interrupt
+        TIM10->CR1 &= 0x00;        //Turn off time delay interrupt
   }
 }
 
-void EXTI1_IRQHandler () //Reset button
+void Reset () //Reset button
 {
   delay();
 
@@ -283,9 +282,9 @@ void EXTI1_IRQHandler () //Reset button
 /* Main program */
 /*----------------------------------------------------------*/
 int main(void)
-__enable_irq();         //enable interrupts
 {
-  PinSetup(); //Configure GPIO pins
+  PinSetup();             //Configure GPIO pins
+  __enable_irq();         //enables interrupts
 
   if (start == 1){
 
