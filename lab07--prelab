@@ -12,15 +12,20 @@ int button = 0;
 
 /*TimeBasedInterrupt ()
 {
-  if (cycle >= button)
+  if (cycle == 9)
+  {
+    //set output to low (0)
+    cycle = 0;
+  }
+  else if (cycle <= button)
   {
     //set output to low (0)
     cycle++;
   }
-  else if (cycle == 9)
+  else
   {
-    //set output to low (0)
-    cycle = 0;
+    //set output to high (1)
+    cycle++;
   }
 }
 */
