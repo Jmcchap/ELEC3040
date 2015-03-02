@@ -7,20 +7,20 @@ int button = 0;
 {
   //set button value (0 through 9)
   actLEDs(button, led1, led2, led3, led4);
-  cycle = button;}
+  }
 */
 
 /*TimeBasedInterrupt ()
 {
-  if (cycle == 0)
+  if (cycle >= button)
   {
     //set output to low (0)
-    cycle = button;
+    cycle++;
   }
-  else
+  else if (cycle == 9)
   {
-    //set output to high (1)
-    cycle--;
+    //set output to low (0)
+    cycle = 0;
   }
 }
 */
