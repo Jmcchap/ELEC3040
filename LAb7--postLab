@@ -1,0 +1,384 @@
+#include "STM32L1xx.h"
+
+int cycle = 0;
+int button = 0;
+int num = 100;
+
+
+
+int Pos_EXTI0 = 6;
+int Pos_EXTI1 = 7;
+int Pos_TIM10 = 26;
+
+int row1, row2, row3, row4;
+float percentage[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+float dutyCycle;
+int period = 16000;   //starting value from slides (16MHz/1kHz). 1ms
+
+//LEDs
+int led1 = 0; //state of LED1
+int led2 = 0; //state of LED2
+int led3 = 0; //state of LED3
+int led4 = 0; //state of LED4
+
+void PinSetup()
+{
+//Configure PC() as output pins for LEDs
+RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
+GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+GPIOC->OSPEEDR  &= (0xFFFFFF00);    /*Clear Pins 0-3 for speed setting*/
+GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
+
+//PA pins 0-1 setup (interrupts and TIM10)
+RCC->AHBENR     |= 0x01;             /*Enable GPIOA clock*/
+GPIOA->MODER    &= (0xFFFFFFF0);    /*Clears Pins 0 and 1 as inputs*/
+GPIOA->OSPEEDR  &= (0xFFFFFFF0);    /*Clears Pins 0 and 1 for speed settings*/
+GPIOA->OSPEEDR  |= (0x0000000F);    /*Set Speed to 40MHz (high speed)*/
+GPIOA->PUPDR    &= (0xFFFFFFF0);    /*No pull-up, pull-down*/
+
+GPIOA->MODER   &= ~0x00000030;      //clears PA2 (0011 0000)
+GPIOA->MODER   |=  0x00000020;      //sets bit PA2 as alternative function mode
+GPIOA->AFR[0]  &= ~0x00000F00;      //Clears AFRL3 for TIM10
+GPIOA->AFR[0]  |=  0x00000300;      //PA2 = AF3
+	
+//Configure PB(0-3) as rows on keypad (inputs)
+RCC->AHBENR     |= 0x02;             /*Enable GPIOB clock*/
+GPIOB->MODER    &= (0xFFFFFF00);    //Clear Pins 0-3 to be set as inputs
+GPIOB->OSPEEDR  &= (0xFFFFFF00);    //Clears pins 0-3 for speed settings
+GPIOB->OSPEEDR  |= (0x000000FF);    //Set Speed to 40MHz (high speed)
+GPIOB->PUPDR    &= (0xFFFFFF00);    //Clear Pins 0-3 for pull up, pull-down settings
+GPIOB->PUPDR    |= (0x00000055);    //Set Pins 0-3 as pull up
+
+//Configure PB(4-7) as columns on keypad (outputs)
+GPIOB->MODER    &= (0xFFFF00FF);      //Clear pins 4-7 to be set as outputs
+GPIOB->MODER    |= (0x00005500);      //Sets pins 4-7 as outputs
+GPIOB->OSPEEDR  &= (0xFFFF00FF);      //Clears PB(4-7) for speed settings
+GPIOB->OSPEEDR  |= (0x0000FF00);      //Sets speed to 40MHz (high speed)
+GPIOB->PUPDR    &= (0xFFFF00FF);      //clears bits for pull up
+GPIOB->PUPDR    |= (0xFFFF55FF);      //pull up
+
+
+//Setup of PA0 and PA1 as interrupts
+SYSCFG->EXTICR[0] &= 0xFFF0;        //clear bits for EXTI0 (00 for PA)
+SYSCFG->EXTICR[0] &= 0xFF0F;        //clear bits for EXTI1 (00 for PA)
+//EXTI-> RTSR       |= 0x0000;        //Set EXTI0 as rising edge triggered
+//EXTI-> IMR         = 0x0000;        //Enable EXTIO
+//EXTI-> PR         |= 0x0000;        //Clear EXTI0 pending status
+EXTI-> FTSR       |= 0x0001;        //Set EXTI0 as falling edge triggered
+EXTI-> IMR         = 0x0001;        //Enable EXTI0
+EXTI-> PR         |= 0x0001;        //Clear EXTI0 pending status
+NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+//NVIC_ClearPendingIRQ(Pos_EXTI1);		//Clear NVIC pending status
+NVIC_EnableIRQ(Pos_EXTI0);          //Enable external interrupt 0
+//NVIC_EnableIRQ(Pos_EXTI1);          //Enable external interrupt 1
+
+
+//Setup of TIM10
+RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //enable clock for TIM10
+TIM10->PSC    = 1;                  //(9999 x 1599 ) /16E6 = 0.999275
+TIM10->ARR    = period;              //1 second delay
+TIM10->CCR1   = dutyCycle;           //T1, the duty cycle of the PWM
+TIM10->CCMR1  &= 0x8C;               //clearing bits 0-1 and 4-6
+TIM10->CCMR1  |= 0x60;               //bits 4-6 = 110 for active to inactive transition. 11 for output
+TIM10->CCER   &= 0xFFFC;			         //clear bits 0 and 1 (0 to set OC1 as active high)
+TIM10->CCER   |= 0x01;               //Set CC1 (bit 0) as an output
+TIM10->DIER   |= 0x01;                //UIE is bit 0
+NVIC_ClearPendingIRQ(Pos_TIM10);     //clear NVIC pending status
+TIM10->SR &= ~0x01;
+NVIC_EnableIRQ(Pos_TIM10);
+
+}
+
+
+/*----------------------------------------------------------*/
+/* set the states of corresponding LEDs based on a integer from 0 to 9 */
+/*----------------------------------------------------------*/
+void actLEDs(int n, int l1, int l2, int l3, int l4)
+{
+	
+  if (n == 0)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 1)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 2)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 3)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 4)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 5)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 6)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 7)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 8)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 9)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+
+  led1 = l1;
+  led2 = l2;
+  led3 = l3;
+  led4 = l4;
+}
+
+void EXTI0_IRQHandler ()
+{
+  /*Scanning algorithm, column 1*/
+  GPIOB-> BSRRH = 0x10;            //set column1 to 0
+	
+	row1= GPIOB->IDR &= 0x01;    //PB(0) aka row1
+  row2= GPIOB->IDR &= 0x02;    //PB(1) aka row2
+  row3= GPIOB->IDR &= 0x04;    //PB(2) aka row3
+  row4= GPIOB->IDR &= 0x08;    //PB(3) aka row4
+	
+  if (row1 == 0){
+        num = 1;}
+    else if (row2 == 0){
+        num = 4;}
+    else if (row3 == 0){
+        num = 7;}
+    else if (row4 == 0){
+        num = 14;}          //E
+  GPIOB-> BSRRL = 0x10;             //return column1 to 1
+
+if (num == 1||4||7||14){
+	button = num;
+
+	TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+  actLEDs(button, led1, led2, led3, led4);
+
+
+  EXTI->PR |= 0x0000;
+	NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+}
+else{
+				
+/*Scanning algorithm, column 2*/
+    GPIOB-> BSRRH = 0x20;            //set column2 to 0
+	
+	row1= GPIOB->IDR &= 0x01;    //PB(0) aka row1
+  row2= GPIOB->IDR &= 0x02;    //PB(1) aka row2
+  row3= GPIOB->IDR &= 0x04;    //PB(2) aka row3
+  row4= GPIOB->IDR &= 0x08;    //PB(3) aka row4
+	
+    if (row1 == 0){
+          num = 2;}
+      else if (row2 == 0){
+          num = 5;}
+      else if (row3 == 0){
+          num = 8;}
+      else if (row4 == 0){
+          num = 0;}
+    GPIOB-> BSRRL = 0x20;             //return column2 to 1
+	if (num == 2||5||8||0){
+	button = num;
+
+	TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+  actLEDs(button, led1, led2, led3, led4);
+
+
+  EXTI->PR |= 0x0000;
+	NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+	}
+	else{
+		/*Scanning algorithm, column 3*/
+    GPIOB-> BSRRH = 0x40;            //set column3 to 0
+		
+			row1= GPIOB->IDR &= 0x01;    //PB(0) aka row1
+			row2= GPIOB->IDR &= 0x02;    //PB(1) aka row2
+			row3= GPIOB->IDR &= 0x04;    //PB(2) aka row3
+			row4= GPIOB->IDR &= 0x08;    //PB(3) aka row4
+		
+      if (row1 == 0){
+            num = 3;}
+        else if (row2 == 0){
+            num = 6;}
+        else if (row3 == 0){
+            num = 9;}
+        else if (row4 == 0){
+            num = 15;}          //F
+      GPIOB-> BSRRL = 0x40;             //return column3 to 1
+
+			if (num == 3||6||9||15){
+			button = num;
+
+	TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+  actLEDs(button, led1, led2, led3, led4);
+
+
+  EXTI->PR |= 0x0000;
+	NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+			}
+			else{
+			/*Scanning algorithm, column 4*/
+     GPIOB-> BSRRH = 0x80;            //set column4 to 0
+				
+			row1= GPIOB->IDR &= 0x01;    //PB(0) aka row1
+			row2= GPIOB->IDR &= 0x02;    //PB(1) aka row2
+			row3= GPIOB->IDR &= 0x04;    //PB(2) aka row3
+			row4= GPIOB->IDR &= 0x08;    //PB(3) aka row4
+				
+          if (row1 == 0){
+                num = 10;}          //A
+            else if (row2 == 0){
+                num = 11;}          //B
+            else if (row3 == 0){
+                num = 12;}          //C
+            else if (row4 == 0){
+                num = 13;}          //D
+     GPIOB-> BSRRL = 0x80;             //return column4 to 1
+
+				button = num;
+
+	TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+  actLEDs(button, led1, led2, led3, led4);
+
+
+  EXTI->PR |= 0x0000;
+	NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+								
+			}
+			
+	}
+		
+}
+	
+
+}
+
+
+/*----------------------------------------------------------*/
+/* Time interrupt -- activates every 0.1 seconds */
+/*----------------------------------------------------------*/
+
+void TIM10_IRQHandler () //Time interrupt
+{
+  dutyCycle = period * percentage[button];    //finds T1, the duty cycle
+
+
+
+	/*  if (cycle <= 9)
+  {
+    //set output to low (0)
+    cycle = 0;
+  }
+  else if (cycle <= button)
+  {
+    //set output to low (0)
+    cycle++;
+  }
+  else
+  {
+    //set output to high (1)
+    cycle++; 
+  }
+*/
+	
+TIM10->DIER  |= 0x01;                    //UIE is bit 0
+
+NVIC_ClearPendingIRQ(Pos_TIM10);
+TIM10->SR &= ~0x01;
+NVIC_ClearPendingIRQ(Pos_EXTI0);		//Clear NVIC pending status
+//NVIC_ClearPendingIRQ(Pos_EXTI1);		//Clear NVIC pending status
+NVIC_EnableIRQ(Pos_EXTI0);          //Enable external interrupt 0
+//NVIC_EnableIRQ(Pos_EXTI1);          //Enable external interrupt 1
+
+}
+
+
+/*----------------------------------------------------------*/
+/* Main program */
+/*----------------------------------------------------------*/
+int main(void)
+{
+
+  PinSetup();         //Configure GPIO pins
+  __enable_irq();     //enable interrupts
+	
+	
+  while(1) //Endless loop
+  {
+    
+        if (led1 == 0){
+            GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+      }
+
+        if (led2 == 0){
+            GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+      }
+
+        if (led3 == 0){
+            GPIOC->BSRRH = 0x04;       /*set LED3 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x04;      /*set LED3 to 1*/
+      }
+        if (led4 == 0){
+            GPIOC->BSRRH = 0x08;       /*set LED4 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
+      }
+
+  }
+}
