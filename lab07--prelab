@@ -7,8 +7,6 @@ int Pos_EXTI0 = 6;
 int Pos_EXTI1 = 7;
 int Pos_TIM10 = 26;
 
-int Int = 0;
-
 int row1, row2, row3, row4;
 
 //tenths of seconds
@@ -208,7 +206,7 @@ void EXTI0_IRQHandler () //Start/Stop button
 /*----------------------------------------------------------*/
 void TIM10_IRQHandler () //Time interrupt
 {
-  if (cycle == 9)
+  if (cycle <= 9)
   {
     //set output to low (0)
     cycle = 0;
