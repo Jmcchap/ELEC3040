@@ -1,0 +1,48 @@
+int Pin_EXTI0 = 6;
+int Pin_EXTI1 = 7;
+
+void PinSetup(){
+
+  //Configure PC() as output pins for LEDS for one's place
+  RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
+  GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+  GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+  GPIOC->OSPEEDR  &= (0xFFFFFF00);    /*Clear Pins 0-3 for speed setting*/
+  GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+  GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
+
+  //PC pins 4-7 for use with LEDS for decimal portion
+  GPIOC->MODER    &= (0xFFFF00FF);    //Clears Pins 4-7 to be set as output
+  GPIOC->MODER    |= (0x00005500);    //Sets Pins 4-7 in output mode
+  GPIOC->OSPEEDR  &= (0xFFFF00FF);    //Clear Pins 0-3 for speed setting
+  GPIOC->OSPEEDR  |= (0x0000FF00);    //Set Speed to 40MHz (high speed)
+  GPIOC->PUPDR     &= (0xFFFF00FF);   //No pull-up, pull down
+
+  //Setup of PA0 and PA1 as interrupts
+  SYSCFG->EXTICR[0] &= 0xFFF0;        //clear bits for EXTI0 (00 for PA)
+  SYSCFG->EXTICR[0] &= 0xFF0F;        //clear bits for EXTI1 (00 for PA)
+  EXTI-> RTSR       |= 0x0000;        //Set EXTI0 as rising edge triggered
+  EXTI-> IMR         = 0x0000;        //Enable EXTIO
+  EXTI-> PR         |= 0x0000;        //Clear EXTI0 pending status
+  EXTI-> RTSR       |= 0x0001;        //Set EXTI1 as rising edge triggered
+  EXTI-> IMR         = 0x0001;        //Enable EXTI1
+  EXTI-> PR         |= 0x0001;        //Clear EXTI1 pending status
+  NVIC_ClearPendingIRQ(6);						//Clear NVIC pending status
+  NVIC_ClearPendingIRQ(7);					  //Clear NVIC pending status
+  NVIC_EnableIRQ(6);          			  //Enable external interrupt 0
+  NVIC_EnableIRQ(7);          			  //Enable external interrupt 1
+
+
+//Timer setup function
+void timerSetup(){
+    RCC->APB2ENR |= RCC_APB2ENR_TIM10EN;     //enable clock for TIM10
+    TIM10->PSC    = 1599;                    //
+    TIM10->DIER  |= 1;                       //UIE is bit 0
+/* UIE MUST BE RESET AFTER INTERRUPT IS TRIGGERED*/
+    NVIC_EnableIRQ(TIM10_IRQn)
+
+}
+
+
+TIM10->CR1 |=  0x01;     //Enable counting on TIM10
+TIM10->CR1 &= ~0x01;     //Disable counting on TIM10
