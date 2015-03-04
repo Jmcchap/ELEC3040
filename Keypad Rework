@@ -1,0 +1,217 @@
+//testing to try and get keypad to work
+
+int rows = 4;
+int cols = 4;
+int keys[rows][cols]={
+{1,  2,  3,  10},
+{4,  5,  6,  11},
+{7,  8,  9,  12},
+{14, 0,  15, 13}
+};
+
+int led1 = 0;               //state of LED1
+int led2 = 0;               //state of LED2
+int led3 = 0;               //state of LED3
+int led4 = 0;               //state of LED4
+
+int col1 = 0x000000E0;      //used to set column 1 low
+int col2 = 0x000000D0;
+int col3 = 0x000000B0;
+int col4 = 0x00000070;
+
+int row1 = 0x0000000E;      // used to read if row 1 is low
+int row2 = 0x0000000D;
+int row3 = 0x0000000B;
+int row4 = 0x00000007;
+
+int colZero[cols]={col1, col2, col3, col4};
+int rowZero[rows]={row1, row2, row3, row4};
+
+int testCol;
+int testRow;
+int actCol;
+int actRow;
+int button;
+
+/*Function to set up pin configuration */
+void pinSetup(){
+RCC‐>AHBENR |=0x07; //EnableGPIOA,B,Cclocks
+GPIOA‐>MODER &=~(0x0000000F); //GeneralpurposeinputmodePA0&PA1
+GPIOA‐>OSPEEDR&=~(0x0000000F); //ClearPA1speedbits
+GPIOA‐>OSPEEDR|= (0x00000005); //2MHzLowspeed
+GPIOA‐>PUPDR &=~(0x0000000C); //pull‐up
+GPIOA‐>PUPDR |= (0x00000004);
+
+GPIOB‐>MODER &=~(0x0000FFFF); //ClearPB0‐7
+GPIOB‐>MODER |= (0x00005500); //analogmodePB0‐3,outputmodePB4‐7
+GPIOB‐>OTYPER &=~(0x00000300); //Outputpush‐pull
+GPIOB‐>OSPEEDR&=~(0x0000FFFF); //ClearPB0‐7speedbits
+GPIOB‐>OSPEEDR|= (0x00005555); //2MHzLowspeed
+GPIOB‐>PUPDR &=~(0x0000FFFF); //pull‐upsetup
+GPIOB‐>PUPDR |= (0x00000055);
+
+GPIOC‐>MODER &=~(0x000000FF); //ClearPC0‐3
+GPIOC‐>MODER |= (0x00000055); //GeneralPurposeoutputmodePC0‐3
+GPIOC‐>OTYPER &=~(0x00000300); //Outputpush‐pull
+GPIOC‐>OSPEEDR&=~(0x000000FF); //ClearPC0‐PC3speedbits
+GPIOC‐>OSPEEDR|= (0x00000055); //2MHzLowspeed
+GPIOC‐>PUPDR &=~(0x000000FF); //Nopull‐up,pull‐down
+}
+
+void InterruptSetup(){
+NVIC_EnableIRQ(EXTI1_IRQn); //RecognizeEXTI1IRQ
+SYSCFG‐>EXTICR[0]&=0xFF0F; //clearEXTI1bitfield
+SYSCFG‐>EXTICR[0]|=0x0000; //setEXTI1=PA1
+EXTI‐>FTSR|=0x0002; //EXTI1isfallingedge
+EXTI‐>IMR=0x0002; //EnableEXTI1
+EXTI‐>PR|=0x0002;
+}
+
+void actLEDs(int n, int l1, int l2, int l3, int l4)
+{
+
+  if (n == 0)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 1)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 2)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 3)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 0;
+    l4 = 0;
+  }
+  else if (n == 4)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 5)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 6)
+  {
+    l1 = 0;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 7)
+  {
+    l1 = 1;
+    l2 = 1;
+    l3 = 1;
+    l4 = 0;
+  }
+  else if (n == 8)
+  {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+  else if (n == 9)
+  {
+    l1 = 1;
+    l2 = 0;
+    l3 = 0;
+    l4 = 1;
+  }
+
+  led1 = l1;
+  led2 = l2;
+  led3 = l3;
+  led4 = l4;
+}
+
+void EXTI1_IRQHandler ()
+{
+ for(testCol = 0; testCol <4; testCol++)
+   {
+   GPIOB->ODR = colZero[testCol];
+      if((GPIOB->IDR & 0x0000000F) != 0x0000000F)
+      {
+         for(testRow=0; testRow <4; testRow++)
+         {
+            if((GPIOB->IDR & rowZero[testRow]) == rowZero[testRow])
+            {
+                actCol = testCol;
+                actRow = testRow;
+                break;
+            }
+         }
+       break;
+      }
+   }
+   button = keys[actRow][actCol];
+   actLEDs(button, led1, led2, led3, led4);
+}
+
+
+
+/*----------------------------------------------------------*/
+/* Main program */
+/*----------------------------------------------------------*/
+int main(void)
+{
+
+  PinSetup();         //Configure GPIO pins
+  InterruptSetup();
+  __enable_irq();     //enable interrupts
+
+
+  while(1) //Endless loop
+  {
+
+        if (led1 == 0){
+            GPIOC->BSRRH = 0x01;       /*set LED1 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x01;      /*set LED1 to 1*/
+      }
+
+        if (led2 == 0){
+            GPIOC->BSRRH = 0x02;       /*set LED2 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x02;      /*set LED2 to 1*/
+      }
+
+        if (led3 == 0){
+            GPIOC->BSRRH = 0x04;       /*set LED3 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x04;      /*set LED3 to 1*/
+      }
+        if (led4 == 0){
+            GPIOC->BSRRH = 0x08;       /*set LED4 to 0*/
+      }
+        else{
+            GPIOC->BSRRL = 0x08;      /*set LED4 to 1*/
+      }
+
+  }
+}
