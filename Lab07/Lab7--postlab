@@ -63,10 +63,10 @@ GPIOA->OSPEEDR|= (0x00000005); //2MHzLowspeed
 GPIOA->PUPDR &=~(0x0000000C); //pull-up
 GPIOA->PUPDR |= (0x00000004);
 
-GPIOA->MODER   &= ~0x00000030;      //clears PA2 (0011 0000)
-GPIOA->MODER   |=  0x00000020;      //sets bit PA2 as alternative function mode
-GPIOA->AFR[0]  &= ~0x00000F00;      //Clears AFRL3 for TIM10
-GPIOA->AFR[0]  |=  0x00000300;      //PA2 = AF3
+GPIOA->MODER   &= ~0x00003000;      //clears PA6 (0011 0000)
+GPIOA->MODER   |=  0x00002000;      //sets bit PA6 as alternative function mode
+GPIOA->AFR[0]  &= ~0x0F000000;      //Clears AFRL3 for TIM10
+GPIOA->AFR[0]  |=  0x03000000;      //PA6 = AF3
 	
 //Configure PB(0-7) (inputs)
 RCC->AHBENR     |= 0x02;             /*Enable GPIOB clock*/
@@ -249,6 +249,8 @@ NVIC_ClearPendingIRQ(Pos_EXTI1);		//Clear NVIC pending status
 NVIC_EnableIRQ(Pos_EXTI1);          //Enable external interrupt 1
 
 }
+
+
 
 
 /*----------------------------------------------------------*/
