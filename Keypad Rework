@@ -1,8 +1,9 @@
 //testing to try and get keypad to work
+#include "STM32L1xx.h"
 
 int rows = 4;
 int cols = 4;
-int keys[rows][cols]={
+int keys[4][4]={
 {1,  2,  3,  10},
 {4,  5,  6,  11},
 {7,  8,  9,  12},
@@ -24,8 +25,9 @@ int row2 = 0x0000000D;
 int row3 = 0x0000000B;
 int row4 = 0x00000007;
 
-int colZero[cols]={col1, col2, col3, col4};
-int rowZero[rows]={row1, row2, row3, row4};
+int colZero[4]={0x000000E0, 0x000000D0, 0x000000B0, 0x00000070};
+int rowZero[4]={0x0000000E, 0x0000000D, 0x0000000B, 0x00000007}; 
+
 
 int testCol;
 int testRow;
@@ -35,36 +37,36 @@ int button;
 
 /*Function to set up pin configuration */
 void pinSetup(){
-RCC‐>AHBENR |=0x07; //EnableGPIOA,B,Cclocks
-GPIOA‐>MODER &=~(0x0000000F); //GeneralpurposeinputmodePA0&PA1
-GPIOA‐>OSPEEDR&=~(0x0000000F); //ClearPA1speedbits
-GPIOA‐>OSPEEDR|= (0x00000005); //2MHzLowspeed
-GPIOA‐>PUPDR &=~(0x0000000C); //pull‐up
-GPIOA‐>PUPDR |= (0x00000004);
+RCC->AHBENR |=0x07; //EnableGPIOA,B,Cclocks
+GPIOA->MODER &=~(0x0000000F); //GeneralpurposeinputmodePA0&PA1
+GPIOA->OSPEEDR&=~(0x0000000F); //ClearPA1speedbits
+GPIOA->OSPEEDR|= (0x00000005); //2MHzLowspeed
+GPIOA->PUPDR &=~(0x0000000C); //pull-up
+GPIOA->PUPDR |= (0x00000004);
 
-GPIOB‐>MODER &=~(0x0000FFFF); //ClearPB0‐7
-GPIOB‐>MODER |= (0x00005500); //analogmodePB0‐3,outputmodePB4‐7
-GPIOB‐>OTYPER &=~(0x00000300); //Outputpush‐pull
-GPIOB‐>OSPEEDR&=~(0x0000FFFF); //ClearPB0‐7speedbits
-GPIOB‐>OSPEEDR|= (0x00005555); //2MHzLowspeed
-GPIOB‐>PUPDR &=~(0x0000FFFF); //pull‐upsetup
-GPIOB‐>PUPDR |= (0x00000055);
+GPIOB->MODER &=~(0x0000FFFF); //ClearPB0-7
+GPIOB->MODER |= (0x00005500); //analogmodePB0-3,outputmodePB4-7
+GPIOB->OTYPER &=~(0x00000300); //Outputpush-pull
+GPIOB->OSPEEDR&=~(0x0000FFFF); //ClearPB0-7speedbits
+GPIOB->OSPEEDR|= (0x00005555); //2MHzLowspeed
+GPIOB->PUPDR &=~(0x0000FFFF); //pull-upsetup
+GPIOB->PUPDR |= (0x00000055);
 
-GPIOC‐>MODER &=~(0x000000FF); //ClearPC0‐3
-GPIOC‐>MODER |= (0x00000055); //GeneralPurposeoutputmodePC0‐3
-GPIOC‐>OTYPER &=~(0x00000300); //Outputpush‐pull
-GPIOC‐>OSPEEDR&=~(0x000000FF); //ClearPC0‐PC3speedbits
-GPIOC‐>OSPEEDR|= (0x00000055); //2MHzLowspeed
-GPIOC‐>PUPDR &=~(0x000000FF); //Nopull‐up,pull‐down
+GPIOC->MODER &=~(0x000000FF); //ClearPC0-3
+GPIOC->MODER |= (0x00000055); //GeneralPurposeoutputmodePC0-3
+GPIOC->OTYPER &=~(0x00000300); //Outputpush-pull
+GPIOC->OSPEEDR&=~(0x000000FF); //ClearPC0-PC3speedbits
+GPIOC->OSPEEDR|= (0x00000055); //2MHzLowspeed
+GPIOC->PUPDR &=~(0x000000FF); //Nopull-up,pull-down
 }
 
 void InterruptSetup(){
 NVIC_EnableIRQ(EXTI1_IRQn); //RecognizeEXTI1IRQ
-SYSCFG‐>EXTICR[0]&=0xFF0F; //clearEXTI1bitfield
-SYSCFG‐>EXTICR[0]|=0x0000; //setEXTI1=PA1
-EXTI‐>FTSR|=0x0002; //EXTI1isfallingedge
-EXTI‐>IMR=0x0002; //EnableEXTI1
-EXTI‐>PR|=0x0002;
+SYSCFG->EXTICR[0]&=0xFF0F; //clearEXTI1bitfield
+SYSCFG->EXTICR[0]|=0x0000; //setEXTI1=PA1
+EXTI->FTSR|=0x0002; //EXTI1isfallingedge
+EXTI->IMR=0x0002; //EnableEXTI1
+EXTI->PR|=0x0002;
 }
 
 void actLEDs(int n, int l1, int l2, int l3, int l4)
@@ -178,7 +180,7 @@ void EXTI1_IRQHandler ()
 int main(void)
 {
 
-  PinSetup();         //Configure GPIO pins
+  pinSetup();         //Configure GPIO pins
   InterruptSetup();
   __enable_irq();     //enable interrupts
 
@@ -214,4 +216,4 @@ int main(void)
       }
 
   }
-}
+}     
