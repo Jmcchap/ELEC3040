@@ -1,0 +1,34 @@
+/*----------------------------------------------------------*/
+/* Time interrupt -- activates every 0.1 seconds */
+/*----------------------------------------------------------*/
+void TIM10_IRQHandler () //Time interrupt
+{
+  dutyCycle = period * percentage[button];    /finds T1, the duty cycle
+
+
+
+	/*  if (cycle <= 9)
+  {
+    //set output to low (0)
+    GPIOA->BSRRH = 0x04;
+    cycle = 0;
+  }
+  else if (cycle <= button)
+  {
+    //set output to low (0)
+    GPIOA->BSRRH = 0x04;
+    cycle++;
+  }
+  else
+  {
+    //set output to high (1)
+    GPIOA->BSRRL = 0x04;
+    cycle++; 8/
+  }
+
+TIM10->DIER  |= 0x01;                    //UIE is bit 0
+
+NVIC_ClearPendingIRQ(Pos_TIM10);
+TIM10->SR &= ~0x01;
+
+}
