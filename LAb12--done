@@ -1,0 +1,290 @@
+#include "STM32L1xx.h"
+
+
+int keys[4][4]={
+{1,  2,  3,  10},
+{4,  5,  6,  11},
+{7,  8,  9,  12},
+{14, 0,  15, 13}
+};
+
+int col1 = 0x000000E0;      //used to set column 1 low
+int col2 = 0x000000D0;
+int col3 = 0x000000B0;
+int col4 = 0x00000070;
+
+int row1 = 0x0000000E;      // used to read if row 1 is low
+int row2 = 0x0000000D;
+int row3 = 0x0000000B;
+int row4 = 0x00000007;
+
+int colZero[4]={0x000000E0, 0x000000D0, 0x000000B0, 0x00000070};
+int rowZero[4]={0x0000000E, 0x0000000D, 0x0000000B, 0x00000007};
+int voltAvg[100]; //array to capture 100data points for voltage
+float compensate[9] = {1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09};
+
+int testCol;
+int testRow;
+int actCol;
+int actRow;
+int button;
+int periodMeasured;
+int Amplitude; 
+int dataRegister;
+int capturedVolt;
+int i = 0;
+int j=0;
+int k = 0;
+int sum = 0;
+float avg;
+
+
+
+int Pos_EXTI0 = 6;
+int Pos_EXTI1 = 7;
+int Pos_TIM4 = 30;
+int Pos_TIM10 = 26;
+
+int row1, row2, row3, row4;
+float percentage[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+float dutyCycle;
+int period = 16000;   //starting value from slides (16MHz/1kHz). 1ms
+
+
+void PinSetup()
+{
+//Configure PC() as output pins for LEDs
+RCC->AHBENR     |= 0x04;             /*Enable GPIOC clock*/
+GPIOC->MODER    &= (0xFFFFFF00);    /*Clear Pins 0-3 to be set as output*/
+GPIOC->MODER    |= (0x00000055);    /*Sets Pins 0-3 in output mode*/
+GPIOC->OSPEEDR  &= (0xFFFFFF00);    /*Clear Pins 0-3 for speed setting*/
+GPIOC->OTYPER &=~(0x00000300); //Outputpush-pull
+GPIOC->OSPEEDR  |= (0x000000FF);    /*Set Speed to 40MHz (high speed)*/
+GPIOC->PUPDR    &= (0xFFFFFF00);    /*No pull-up, pull-down*/
+
+//PA pins 1 setup (interrupts and TIM10)
+RCC->AHBENR     |= 0x01;             /*Enable GPIOA clock*/
+GPIOA->MODER &=~(0x0000000F); //General purpose input mode PA0 & PA1
+GPIOA->OSPEEDR&=~(0x0000000F); //Clear PA1 speedbits
+GPIOA->OSPEEDR|= (0x00000005); //2MHz Lowspeed
+GPIOA->PUPDR &=~(0x0000000C); //pull-up
+GPIOA->PUPDR |= (0x00000004);
+
+GPIOA-> MODER &= ~(0x000000C0);    //clear bit 3
+GPIOA-> MODER |=  (0x000000C0);    //set bit 3 as analog mode for ADC
+
+GPIOA->MODER   &= ~0x00003000;      //clears PA6 (0011 0000)
+GPIOA->MODER   |=  0x00002000;      //sets bit PA6 as alternative function mode
+GPIOA->AFR[0]  &= ~0x0F000000;      //Clears AFRL3 for TIM10
+GPIOA->AFR[0]  |=  0x03000000;      //PA6 = AF3
+
+//Configure PB(0-7,  9) (inputs)
+RCC->AHBENR     |= 0x02;             /*Enable GPIOB clock*/
+GPIOB->MODER &=~(0x000CFFFF);        //ClearPB0-7 and 9
+GPIOB->MODER |= (0x00005500);        //outputmodePB4-7
+GPIOB->OTYPER &=~(0x00000300);       //Outputpush-pull
+GPIOB->OSPEEDR&=~(0x000CFFFF);        //ClearPB0-7speedbits
+GPIOB->OSPEEDR|= (0x00045555);      //2MHzLowspeed
+GPIOB->PUPDR &=~(0x0000FFFF);        //pull-upsetup
+GPIOB->PUPDR |= (0x00000055);
+
+
+//Setup of TIM10
+RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //enable clock for TIM10
+TIM10->PSC    = 1;
+TIM10->CCMR1  &= 0x8C;               //clearing bits 0-1 and 4-6
+TIM10->CCMR1  |= 0xEC;               //bits 4-6 = 110 for active to inactive transi	0 for output
+TIM10->CCER   &= 0xFFFC;			         //clear bits 0 and 1 (0 to set OC1 as active high)
+TIM10->CCER   |= 0x01;               //Set CC1 (bit 0) as an output
+
+TIM10->DIER   |= 0x01;                //UIE is bit 0
+NVIC_ClearPendingIRQ(Pos_TIM10);     //clear NVIC pending status
+TIM10->SR &= ~0x01;
+
+//Setup of TIM4
+RCC->APB2ENR |= RCC_APB1ENR_TIM4EN; //enable clock for TIM4
+TIM4->PSC    = 1;
+TIM4->CCMR1  &= 0x8C;               //clearing bits 0-1 and 4-6
+TIM4->CCMR1  |= 0xEC;               //bits 4-6 = 110 for active to inactive transi	0 for output
+TIM4->CCER   &= 0x0FFC;			         //clear bits 0 and 1 (0 to set CC1NP as falling input edge)
+TIM4->CCER   |= 0x01;               //Set CC1 (bit 0) as an input (capture enabled)
+
+TIM4->ARR    = 0xFFF;
+//TIM4->CCR1   = dutyCycle;           //T1, the duty cycle of the PWM
+
+TIM4->DIER   |= 0x01;                //UIE is bit 0
+NVIC_ClearPendingIRQ(Pos_TIM4);     //clear NVIC pending status
+TIM4->SR &= ~0x01;
+
+
+//Setup of ADC
+RCC->CR      |= 0x01;                        //turn on HSI clock
+RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;          //turn on ADC digital interface (A)
+ADC1->CR2    |= ADC_CR2_ADON ;
+ADC1->CR2    |=ADC_CR2_CONT; 
+ADC1->SQR5   &= ~ADC_SQR5_SQ1;
+ADC1->SQR5   |= 0x00000003;   
+
+/*
+ADC1->CR2  &= ~(0x40000C03);  //clear bits 30,11(Right alignment),10(set and convo sequence), 1(single conersation mode), and 0(off)
+ADC1->CR2    |= (0x400000000);    //Turn on software start signal
+ADC1->CR1   &= ~(0x03000120); //disable scan, no interrupt, clear bits for ADC resolution
+ADC1->CR1   |=0x03000000;    //6 bit ADC
+ADC1->SMPR3 &= ~(0x07000000);  //Tsampling = 4 clock cycles. (4cycles = 000)
+*/
+}
+
+
+
+void InterruptSetup(){
+NVIC_EnableIRQ(EXTI1_IRQn); //RecognizeEXTI1IRQ
+SYSCFG->EXTICR[0]&=0xFF0F; //clearEXTI1bitfield
+SYSCFG->EXTICR[0]|=0x0000; //setEXTI1=PA1
+EXTI->FTSR|=0x0002; //EXTI1isfallingedge
+EXTI->IMR=0x0002; //EnableEXTI1
+EXTI->PR|=0x0002;
+
+NVIC_EnableIRQ(Pos_TIM10);
+NVIC_EnableIRQ(Pos_TIM4);
+}
+
+
+
+/*----------------------------------------------------------*/
+/* Delay function - 0.5 second delay??? */
+/*----------------------------------------------------------*/
+void delay ()
+{
+ int a,b;
+ for (a=0; a<100; a++) { //outer loop
+
+	 for (b=0; b<30000; b++) { //inner loop
+ }
+ }
+}
+
+
+void average(){
+	sum = 0; 
+	
+for (k = 0; k<100; k++){
+ sum = voltAvg[k] + sum;
+}
+
+avg = sum / 100;
+	
+	
+}
+
+void captureVoltage(){
+
+	ADC1->CR2   |= ADC_CR2_SWSTART;               //Turn on ADC
+	while ((ADC1-> SR & 0x02) ==0);{
+		//wait for ADC to finish
+	}
+  dataRegister = ( ADC1->DR);
+	
+	
+	if(i<100){
+		 
+		voltAvg[i] = dataRegister;
+		i = i++;	
+	}
+	
+ 
+	
+	}
+
+void EXTI1_IRQHandler ()
+{
+ for(testCol = 0; testCol <4; testCol++)
+   {
+   GPIOB->ODR = colZero[testCol];
+      if((GPIOB->IDR & 0x0000000F) != 0x0000000F)
+      {
+         for(testRow=0; testRow <4; testRow++)
+         {
+            if((GPIOB->IDR & rowZero[testRow]) == rowZero[testRow])
+            {
+                actCol = testCol;
+                actRow = testRow;
+                break;
+            }
+         }
+       break;
+      }
+   }
+   button = keys[actRow][actCol];
+   delay();
+   TIM10->CR1 |= 0x01;          //Turn on time delay interrupt
+	 while (i<100){
+	  captureVoltage();
+	 }
+	 i=0;
+	 average();
+}
+
+/*----------------------------------------------------------*/
+/* Time interrupt -- activates every 0.1 seconds */
+/*----------------------------------------------------------*/
+
+void TIM10_IRQHandler () //Time interrupt
+{
+  dutyCycle = period * percentage[button];    //finds T1, the duty cycle
+  TIM10->ARR    = period;
+  TIM10->CCR1   = dutyCycle;           //T1, the duty cycle of the PWM
+  TIM10->CNT    = 0;                   //Start DutyCycle when period begins
+
+TIM10->DIER  |= 0x01;                    //UIE is bit 0
+
+NVIC_ClearPendingIRQ(Pos_TIM10);
+TIM10->SR &= ~0x01;
+NVIC_ClearPendingIRQ(Pos_EXTI1);		//Clear NVIC pending status
+NVIC_EnableIRQ(Pos_EXTI1);          //Enable external interrupt 1
+
+}
+
+void TIM4_IRQHandler()
+{
+   periodMeasured = TIM4->CNT;
+   TIM4->CNT = 0;                    //reset the counter
+   TIM4->CR1 &= 0xFFFE;
+   NVIC_ClearPendingIRQ(Pos_TIM4);
+   TIM4->SR &= ~0x01;
+   }
+
+
+/*----------------------------------------------------------*/
+/* Main program */
+/*----------------------------------------------------------*/
+int main(void)
+{
+
+  PinSetup();         //Configure GPIO pins
+  InterruptSetup();   //setup interrupt PA1
+  __enable_irq();     //enable interrupts
+
+
+  while(1) //Endless loop
+  {
+		
+    Amplitude = (dataRegister*3)/64;         //DR from ADC, Vref= 3V, 6 bit format
+		
+/*
+		if( (Amplitude*.95) > dutyCycle  || dutyCycle < (Amplitude*1.05)){
+			for (j=0; j<10;  j++){
+				if((Amplitude*0.95)> dutyCycle){
+					dutyCycle = dutyCycle * compensate[j];
+				}
+			 else if ((Amplitude*1.05) < dutyCycle){
+				 dutyCycle = dutyCycle / compensate[j];
+			 }
+			 
+			 if (Amplitude*.95 < dutyCycle  || dutyCycle  > (Amplitude*1.05)){
+				 break;
+			 }
+  }
+}
+		*/
+}
+}	
